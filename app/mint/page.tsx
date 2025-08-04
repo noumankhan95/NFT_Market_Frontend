@@ -21,16 +21,16 @@ export default function MintQuoteForm() {
   };
 
   return (
-    <div className="p-4 rounded-lg shadow-md bg-white">
+    <div className="p-4 rounded-lg shadow-md bg-white mt-2 w-3/4 lg:w-2/4 mx-auto">
       <h2 className="text-lg font-semibold mb-2">Mint New Quote NFT</h2>
       <input
-        className="border p-2 w-full mb-2"
+        className="border p-2 w-full mb-2 outline-none"
         placeholder="Quote"
         value={text}
         onChange={(e) => setText(e.target.value)}
       />
       <input
-        className="border p-2 w-full mb-2"
+        className="border p-2 w-full mb-2 outline-none"
         placeholder="Author"
         value={author}
         onChange={(e) => setAuthor(e.target.value)}
