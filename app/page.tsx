@@ -1,27 +1,24 @@
-'use client'
-import { useNftListStore } from "@/store/contracts";
-
-export default function MintedNftList() {
-  const { nfts, removeNft, clearAll } = useNftListStore();
-
-  if (nfts.length === 0) return <p>No NFTs minted yet.</p>;
-
+"use client";
+import { useListedNFTs } from "@/hooks/listEvent";
+import ListNftCard from "@/Components/ListNftCard";
+import ListedNftCard from "@/Components/BuyNftCard";
+import { useReadContract } from "wagmi";
+import { nftabi, contract_addresses } from "@/public/constants";
+export default function ListedNFTGallery() {
+  const listings = useListedNFTs();
+  console.log(listings);
   return (
-    <div>
-      <h2>Minted NFTs</h2>
-      <ul>
-        {nfts.map((nft) => (
-          <li key={`${nft.nftAddress}-${nft.tokenId}`}>
-            Token ID: {nft.tokenId} <br />
-            Contract: {nft.nftAddress} <br />
-            URI: {nft.metadataUri ?? "—"} <br />
-            <button onClick={() => removeNft(nft.tokenId, nft.nftAddress)}>
-              Remove
-            </button>
-          </li>
-        ))}
-      </ul>
-      <button onClick={clearAll}>Clear All</button>
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+      <h1>NFTs For Sale</h1>
+      {listings.map((listing, idx) => (
+        <ListedNftCard
+          key={idx}
+          owner={listing.owner}
+          price={listing.price}
+          tokenId={listing.tokenId}
+          nftAddress={contract_addresses.nft as `0x${string}`}
+        />
+      ))}
     </div>
   );
 }

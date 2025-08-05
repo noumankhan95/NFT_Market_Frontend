@@ -1,32 +1,23 @@
+// stores/useListedNfts.ts
 import { create } from "zustand";
 
-type NFTItem = {
-  tokenId: string;
-  nftAddress: string;
-  metadataUri?: string;
+export type Listing = {
+  owner: `0x${string}`;
+  tokenId: bigint;
+  price: bigint;
 };
 
-type NftListStore = {
-  nfts: NFTItem[];
-  addNft: (nft: NFTItem) => void;
-  removeNft: (tokenId: string, nftAddress: string) => void;
-  clearAll: () => void;
-};
+interface ListedNFTState {
+  listings: Listing[];
+  addListing: (listing: Listing) => void;
+  setListings: (listings: Listing[]) => void;
+}
 
-export const useNftListStore = create<NftListStore>((set) => ({
-  nfts: [],
-
-  addNft: (nft) =>
+export const useListedNfts = create<ListedNFTState>((set) => ({
+  listings: [],
+  addListing: (listing) =>
     set((state) => ({
-      nfts: [...state.nfts, nft],
+      listings: [...state.listings, listing],
     })),
-
-  removeNft: (tokenId, nftAddress) =>
-    set((state) => ({
-      nfts: state.nfts.filter(
-        (item) => item.tokenId !== tokenId || item.nftAddress !== nftAddress
-      ),
-    })),
-
-  clearAll: () => set({ nfts: [] }),
+  setListings: (listings) => set({ listings }),
 }));
