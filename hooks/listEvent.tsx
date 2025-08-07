@@ -7,6 +7,7 @@ import { useListedNfts, Listing } from "@/store/contracts";
 import { contract_addresses, marketabi } from "@/public/constants";
 
 const marketplaceAddress = contract_addresses.marketplace as `0x${string}`;
+const nftAddress = contract_addresses.nft as `0x${string}`;
 
 export function useListedNFTs() {
   const client = usePublicClient();
@@ -15,14 +16,12 @@ export function useListedNFTs() {
   const updatePrice = useListedNfts((s) => s.updatePrice);
   const removeListing = useListedNfts((s) => s.removeListing);
   const transferOwnership = useListedNfts((s) => s.transferOwnership);
-  const nftAddress = contract_addresses.nft as `0x${string}`;
 
-  // Fetch past events on load
   useEffect(() => {
     async function syncPastListings() {
       if (!client) return;
 
-      // 1. Get all NFTListed events
+      // 1. Fetch NFTListed events
       const listedLogs = await client.getLogs({
         address: marketplaceAddress,
         event: parseAbiItem(
@@ -32,15 +31,39 @@ export function useListedNFTs() {
         toBlock: "latest",
       });
 
-      //@ts-ignore
-      let listings: Listing[] = listedLogs.map((log) => ({
-        owner: log.args.owner,
-        tokenId: log.args.tokenId,
-        price: log.args.price,
-        nftAddress,
-      }));
+      let listings: Listing[] = listedLogs.map((log) => {
+        const args = log.args as any;
+        return {
+          owner: args.owner,
+          tokenId: BigInt(args.tokenId),
+          price: BigInt(args.price),
+          nftAddress,
+        };
+      });
+      console.log("listings", listings);
+      // 2.   Apply NFTUpdated events
+      const updatedLogs = await client.getLogs({
+        address: marketplaceAddress,
+        event: parseAbiItem(
+          "event NFTUpdated(address indexed owner, uint256 indexed tokenId, uint256 indexed newPrice)"
+        ),
+        fromBlock: BigInt(0),
+        toBlock: "latest",
+      });
 
-      // 2. Get all NFTSold events to update owner
+      updatedLogs.forEach((log) => {
+        console.log("log",log)
+        const args = log.args as any;
+        const tokenId = BigInt(args.tokenId);
+        const newPrice = BigInt(args.newPrice);
+
+        listings = listings.map((l) =>
+          l.tokenId === tokenId ? { ...l, price: newPrice } : l
+        );
+      });
+      console.log("updated listings", listings);
+
+      // 3. Apply NFTSold events
       const soldLogs = await client.getLogs({
         address: marketplaceAddress,
         event: parseAbiItem(
@@ -51,26 +74,46 @@ export function useListedNFTs() {
       });
 
       soldLogs.forEach((log) => {
-        //@ts-ignore
-        const { buyer, tokenId, nftAddress: soldNft } = log.args;
+        const args = log.args as any;
+        const tokenId = BigInt(args.tokenId);
+        const soldNft = args.nftAddress;
+        const buyer = args.buyer;
 
-        // update owner if listing exists
-        //@ts-ignore
-        listings = listings?.map((l) =>
+        listings = listings.map((l) =>
           l.tokenId === tokenId &&
-          l.nftAddress.toLowerCase() === soldNft?.toLowerCase()
+          l.nftAddress.toLowerCase() === soldNft.toLowerCase()
             ? { ...l, owner: buyer }
             : l
         );
       });
+      console.log("sold listings", listings);
 
+      // 4. Apply NFTDeListed events
+      // const cancelledLogs = await client.getLogs({
+      //   address: marketplaceAddress,
+      //   event: parseAbiItem(
+      //     "event NFTDeListed(address indexed owner, uint256 indexed tokenId)"
+      //   ),
+      //   fromBlock: BigInt(0),
+      //   toBlock: "latest",
+      // });
+
+      // cancelledLogs.forEach((log) => {
+      //   const args = log.args as any;
+      //   const tokenId = BigInt(args.tokenId);
+
+      //   listings = listings.filter((l) => l.tokenId !== tokenId);
+      // });
+      // console.log("cancelled listings", listings);
+
+      // Final set
       setListings(listings);
     }
 
     syncPastListings();
   }, [client, setListings]);
 
-  // Live updates for listing
+  // Live updates
   useWatchContractEvent({
     address: marketplaceAddress,
     abi: marketabi,
@@ -78,13 +121,17 @@ export function useListedNFTs() {
     onLogs(logs) {
       logs.forEach((log) => {
         //@ts-ignore
-        const { owner, tokenId, price } = log.args;
-        addListing({ owner, tokenId, price, nftAddress });
+        const args = log.args as any;
+        addListing({
+          owner: args.owner,
+          tokenId: BigInt(args.tokenId),
+          price: BigInt(args.price),
+          nftAddress,
+        });
       });
     },
   });
 
-  // Live updates for price updates
   useWatchContractEvent({
     address: marketplaceAddress,
     abi: marketabi,
@@ -92,13 +139,13 @@ export function useListedNFTs() {
     onLogs(logs) {
       logs.forEach((log) => {
         //@ts-ignore
-        const { tokenId, newPrice } = log.args;
-        updatePrice(tokenId, nftAddress, newPrice);
+
+        const args = log.args as any;
+        updatePrice(BigInt(args.tokenId), nftAddress, BigInt(args.newPrice));
       });
     },
   });
 
-  // Live updates for delisting
   useWatchContractEvent({
     address: marketplaceAddress,
     abi: marketabi,
@@ -106,13 +153,13 @@ export function useListedNFTs() {
     onLogs(logs) {
       logs.forEach((log) => {
         //@ts-ignore
-        const { tokenId } = log.args;
-        removeListing(tokenId, nftAddress);
+
+        const args = log.args as any;
+        removeListing(BigInt(args.tokenId), nftAddress);
       });
     },
   });
 
-  // Ownership transfer after sale
   useWatchContractEvent({
     address: marketplaceAddress,
     abi: marketabi,
@@ -120,8 +167,9 @@ export function useListedNFTs() {
     onLogs(logs) {
       logs.forEach((log) => {
         //@ts-ignore
-        const { tokenId, nftAddress, buyer } = log.args;
-        transferOwnership(tokenId, nftAddress, buyer);
+
+        const args = log.args as any;
+        transferOwnership(BigInt(args.tokenId), args.nftAddress, args.buyer);
       });
     },
   });
