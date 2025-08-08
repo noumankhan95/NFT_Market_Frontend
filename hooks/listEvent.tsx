@@ -40,53 +40,53 @@ export function useListedNFTs() {
           nftAddress,
         };
       });
-      console.log("listings", listings);
-      // 2.   Apply NFTUpdated events
-      const updatedLogs = await client.getLogs({
-        address: marketplaceAddress,
-        event: parseAbiItem(
-          "event NFTUpdated(address indexed owner, uint256 indexed tokenId, uint256 indexed newPrice)"
-        ),
-        fromBlock: BigInt(0),
-        toBlock: "latest",
-      });
+      // console.log("listings", listings);
+      // // 2.   Apply NFTUpdated events
+      // const updatedLogs = await client.getLogs({
+      //   address: marketplaceAddress,
+      //   event: parseAbiItem(
+      //     "event NFTUpdated(address indexed owner, uint256 indexed tokenId, uint256 indexed newPrice)"
+      //   ),
+      //   fromBlock: BigInt(0),
+      //   toBlock: "latest",
+      // });
 
-      updatedLogs.forEach((log) => {
-        console.log("log",log)
-        const args = log.args as any;
-        const tokenId = BigInt(args.tokenId);
-        const newPrice = BigInt(args.newPrice);
+      // updatedLogs.forEach((log) => {
+      //   console.log("log",log)
+      //   const args = log.args as any;
+      //   const tokenId = BigInt(args.tokenId);
+      //   const newPrice = BigInt(args.newPrice);
 
-        listings = listings.map((l) =>
-          l.tokenId === tokenId ? { ...l, price: newPrice } : l
-        );
-      });
-      console.log("updated listings", listings);
+      //   listings = listings.map((l) =>
+      //     l.tokenId === tokenId ? { ...l, price: newPrice } : l
+      //   );
+      // });
+      // console.log("updated listings", listings);
 
-      // 3. Apply NFTSold events
-      const soldLogs = await client.getLogs({
-        address: marketplaceAddress,
-        event: parseAbiItem(
-          "event NFTSold(address indexed buyer, address indexed seller, uint256 indexed tokenId, address nftAddress, uint256 price)"
-        ),
-        fromBlock: BigInt(0),
-        toBlock: "latest",
-      });
+      // // 3. Apply NFTSold events
+      // const soldLogs = await client.getLogs({
+      //   address: marketplaceAddress,
+      //   event: parseAbiItem(
+      //     "event NFTSold(address indexed buyer, address indexed seller, uint256 indexed tokenId, address nftAddress, uint256 price)"
+      //   ),
+      //   fromBlock: BigInt(0),
+      //   toBlock: "latest",
+      // });
 
-      soldLogs.forEach((log) => {
-        const args = log.args as any;
-        const tokenId = BigInt(args.tokenId);
-        const soldNft = args.nftAddress;
-        const buyer = args.buyer;
+      // soldLogs.forEach((log) => {
+      //   const args = log.args as any;
+      //   const tokenId = BigInt(args.tokenId);
+      //   const soldNft = args.nftAddress;
+      //   const buyer = args.buyer;
 
-        listings = listings.map((l) =>
-          l.tokenId === tokenId &&
-          l.nftAddress.toLowerCase() === soldNft.toLowerCase()
-            ? { ...l, owner: buyer }
-            : l
-        );
-      });
-      console.log("sold listings", listings);
+      //   listings = listings.map((l) =>
+      //     l.tokenId === tokenId &&
+      //     l.nftAddress.toLowerCase() === soldNft.toLowerCase()
+      //       ? { ...l, owner: buyer }
+      //       : l
+      //   );
+      // });
+      // console.log("sold listings", listings);
 
       // 4. Apply NFTDeListed events
       // const cancelledLogs = await client.getLogs({
